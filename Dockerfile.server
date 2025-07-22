@@ -1,0 +1,39 @@
+# Use official Python image as base
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Create and set working directory
+WORKDIR /app
+
+# Copy requirements (we will re-use the same requirements.txt)
+COPY ../requirements.txt ./
+
+# Install dependencies (FastMCP, FastAPI, etc.)
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Create a non-root user and set permissions
+RUN useradd -m appuser && \
+    chown -R appuser:appuser /app
+
+# Create database directory and set permissions
+RUN mkdir -p /app/data && \
+    chown -R appuser:appuser /app/data && \
+    chmod 755 /app/data
+
+# Switch to non-root user
+USER appuser
+
+# Expose the SSE endpoint port (default 8000)
+EXPOSE 8000
+
+# Copy anything else the server might need (if there were other modules; in our case we only need server.py)
+# If your tools rely on sqlite3 and want to persist data, ensure the working directory has correct permissions.
+
+# Copy only the server-specific files first
+COPY server.py ./
+
+# Start the MCP server in SSE mode
+CMD ["uv", "run", "server.py", "--server_type=sse"]

@@ -1,0 +1,38 @@
+# Use official Python image as base
+FROM python:3.11-slim
+
+# Prevent Python from buffering stdout/stderr (useful for logs)
+ENV PYTHONUNBUFFERED=1
+
+# Working directory for the client
+WORKDIR /app
+
+# 1) Create a venv, activate it, and upgrade pip there
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip
+
+# 2) Copy requirements.txt and install all dependencies into the venv
+COPY ../requirements.txt ./
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# 3) Copy the entire project (so azure_client.py, streamlit_app.py, etc., get included)
+COPY ../streamlit_app.py ./streamlit_app.py
+COPY ../azure_client.py ./azure_client.py
+COPY ../config ./config
+COPY ../logger ./logger
+COPY ../data ./data
+
+
+# 4) Make sure the venv's bin directory is on PATH, so that 'uv' (and python) point to the venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Expose the default Streamlit port
+EXPOSE 8501
+
+# Ensure Streamlit does not attempt to open a browser
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_SERVER_ENABLE_CORS=false
+
+# By default, run Streamlit
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]

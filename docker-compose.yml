@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  fastmcp-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: fastmcp-server
+    image: myproject/fastmcp-server:latest
+    # Mount a volume for persistent SQLite DB if you want data to survive restarts
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    # (No env_file needed here unless server.py requires environment variables)
+
+  streamlit-client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: streamlit-client
+    image: myproject/streamlit-client:latest
+    # Expose port 8501 externally
+    ports:
+      - "8501:8501"
+    depends_on:
+      - fastmcp-server
+    # ←– Use env_file instead of inline ${…} interpolation
+    env_file:
+      - .env
+    # If you still need to override or add a couple of extra variables,
+    # you can combine env_file + environment like this:
+    #
+    # environment:
+    #   SOME_OTHER_VAR: "some‐value"
+    #
+    # but all the AZURE_* and APP_SETTINGS entries live in .env now.
+
+volumes:
+  fastmcp-db:
+    driver: local
